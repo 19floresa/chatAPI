@@ -1,14 +1,16 @@
-const express = require('express')
-const bodyParser = require('body-parser')
-const app = express()
-const port = 3000
+const express = require('express');
+const bodyParser = require('body-parser');
+const http = require('http');
 
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: true }))
+const app = express();
+const port = 3000;
 
-const routes = require('./routes/routes')
-app.use('', routes)
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+const routes = require('./routes/routes');
+app.use('', routes);
+
+server.listen(port, () => {
+  console.log(`Example app listening on port ${port}`);
+});
