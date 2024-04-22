@@ -108,7 +108,7 @@ router.post('/push', async (req, res) => {
 });
 
 
-router.get('/selectMessages', async (req, res) => // make query************
+router.get('/selectMessages', getID, async (req, res) => // make query************
 {
    try
    {
