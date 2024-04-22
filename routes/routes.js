@@ -3,6 +3,7 @@ const router = express.Router()
 
 const { db } = require('../database/db')
 const ObjectId = require('mongodb').ObjectId
+const { getID } = require('../middleware/middleware.js');
 
 const COLLECTION_USER = "users_info"
 const COLLECTION_MSG  = "users_messages"
@@ -99,7 +100,7 @@ router.post('/push', async (req, res) =>
 })
 
 
-router.get('/selectMessages', async (req, res) => // make query************
+router.get('/selectMessages', getID, async (req, res) => // make query************
 {
    try
    {
