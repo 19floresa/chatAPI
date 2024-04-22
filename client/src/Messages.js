@@ -1,26 +1,62 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { List, ListItem, ListItemText, Divider, Box, Grid, Paper, Card, TextField,
-	InputAdornment, Typography, Avatar, ListItemAvatar, ListItemButton } from '@mui/material';
+    InputAdornment, Typography, Avatar, ListItemAvatar, ListItemButton } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import SendIcon from '@mui/icons-material/Send';
-
+import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 
 function Messages() {
     const users = ["User1", "User2", "User3", "User4", "User5"];
-    const messages = ["Message from User1", "Message from User2", "Message from User3", "Message from User4", "Message from User5"];
-    const [selectedUser, setSelectedUser] = React.useState(users[0]);
+    const [selectedUser, setSelectedUser] = useState(users[0]);
+    const [messages, setMessages] = useState([]);
+    const [newMessage, setNewMessage] = useState('');
+    const location = useLocation();
+    const cardId = location.state?.cardId; 
 
-	const userSideBg = '#9E9E9E'; // Background color for the user list side of the app
-	const searchBoxBg = '#EEEEEE'; // Background color for the search box above the user list
-	const selectedUserHighlight = '#212121'; // Background color for a selected user in the user list
-	const userTextColor = '#FFFFFF'; // Text color for the names of the users in the user list
-	const messageAreaBg = '#E0E0E0'; // Background color for the main message area/display
-	const barBg = '#F5F5F5'; // Background color for the top bar (displaying selected user) and bottom bar (message input area)
-	const messageTextColor = '#212121'; // Text color for the messages displayed in the message area
-	const avatarBgColor = '#EEEEEE'; // Background color for the avatar icons in the user list
-	const avatarTextColor = '#424242'; // Text color for the text inside the avatar icons
+    const userSideBg = '#9E9E9E';
+    const searchBoxBg = '#EEEEEE';
+    const selectedUserHighlight = '#212121';
+    const userTextColor = '#FFFFFF';
+    const messageAreaBg = '#E0E0E0';
+    const barBg = '#F5F5F5';
+    // const messageTextColor = '#212121';
+    const avatarBgColor = '#EEEEEE';
+    const avatarTextColor = '#424242';
+    const messageCardBg = '#212121'; // Background color for the message cards
+    const messageTextColor = '#FFFFFF'; // Text color for the messages in the cards
 
 
+    useEffect(() => {
+        const fetchMessages = async () => {
+            try {
+                const response = await axios.get(`http://localhost:3001/selectMessages`, {
+                    params: { cardId: cardId }
+                });
+                setMessages(response.data.result);
+            } catch (error) {
+                console.error('Failed to fetch messages:', error);
+            }
+        };
+
+        if (cardId) {
+            fetchMessages();
+        }
+    }, [cardId]);
+
+    const handleSendMessage = async () => {
+        try {
+            await axios.post('http://localhost:3001/push', {
+                cardId: cardId,
+                msg: newMessage
+            });
+            setMessages(prevMessages => [...prevMessages, { msg: newMessage }]);
+            setNewMessage('');
+        } catch (error) {
+            console.error('Failed to send message:', error);
+        }
+    };
+    
     return (
         <Box sx={{ flexGrow: 1, height: '100vh' }}>
             <Grid container spacing={0} sx={{ height: '100%' }}>
@@ -84,20 +120,33 @@ function Messages() {
                             <Box sx={{ bgcolor: barBg, display: 'flex', alignItems: 'center', padding: '16px', height: '55.9px' }}>
                                 <Typography variant="h5">{selectedUser}</Typography>
                             </Box>
-                            <div style={{ flexGrow: 1, overflow: 'auto' }}>
-                                {messages.filter(msg => msg.includes(selectedUser)).map((msg, index) => (
-                                    <p key={index} style={{ color: messageTextColor }}>{msg}</p>
+                            <div style={{ flexGrow: 1, overflow: 'auto', display: 'flex', flexDirection: 'column-reverse' }}>
+                                {messages.map((msg, index) => (
+                                    <Box key={index} sx={{
+                                        display: 'inline-block',
+                                        maxWidth: 'fit-content',
+                                        marginLeft: 'auto',
+                                        marginRight: '10px',
+                                        marginBottom: '10px',
+                                        bgcolor: messageCardBg,
+                                        padding: '10px',
+                                        borderRadius: '4px'
+                                    }}>
+                                        <Typography variant="body1" style={{ color: messageTextColor, fontSize: '1.8rem', textAlign: 'right' }}>{msg.msg}</Typography>
+                                    </Box>
                                 ))}
                             </div>
                             <Box sx={{ bgcolor: barBg, padding: '16px' }}>
                                 <TextField
                                     fullWidth
+                                    value={newMessage}
+                                    onChange={e => setNewMessage(e.target.value)}
                                     variant="outlined"
                                     placeholder="Type a message..."
                                     InputProps={{
                                         endAdornment: (
                                             <InputAdornment position="end">
-                                                <SendIcon />
+                                                <SendIcon onClick={handleSendMessage} style={{ cursor: 'pointer' }} />
                                             </InputAdornment>
                                         ),
                                     }}

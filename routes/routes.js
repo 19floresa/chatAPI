@@ -3,12 +3,9 @@ const router = express.Router()
 
 const { db } = require('../database/db')
 const ObjectId = require('mongodb').ObjectId
-const { getID } = require('../middleware/middleware.js');
 
 const COLLECTION_USER = "users_info"
 const COLLECTION_MSG  = "users_messages"
-
-
 
 
 router.post('/register', async (req, res) => 
@@ -64,43 +61,53 @@ router.post('/login', async (req, res) =>
 })
 
 
-router.post('/push', async (req, res) =>
-{
-   try
-   {
-      const { cardId, msg } = req.body
-      if (!cardId) throw "Error in push: missing cardId!"
-      if (!msg) throw "Error: No message to store!"
+router.post('/push', async (req, res) => {
+   const { cardId, msg } = req.body;
 
-      const _id = new ObjectId(cardId); //ObjectId.createFromTime() // i think i can use this to find messages between a date
-
-      const coll = (await db).collection(COLLECTION_USER)
-      const user = await coll.findOne({ _id }) // what if its not found?
-      if (!user) throw "Error: User was not found!"
-
-      const coll_msg = (await db).collection(COLLECTION_MSG)
-      const result = await coll_msg.insertOne(
-         {
-            id: _id,
-            msg: msg
-         })
-     // console.log(result)
-
-      res.status(200).json(
-         {
-            code: 200, 
-            message: "success"
-         })
-   } 
-   catch (e)
-   {
-      // console.log(e)
-      res.status(400).json({code:400, message: e})
+   // Validate input
+   if (!cardId || !msg) {
+      return res.status(400).json({ code: 400, message: "Missing cardId or message in request body." });
    }
-})
+
+   try {
+       // Validate cardId format
+      if (!ObjectId.isValid(cardId)) {
+         throw new Error("Invalid cardId format.");
+      }
+
+      const _id = new ObjectId(cardId);
+
+      // Verify user exists
+      const userCollection = (await db).collection(COLLECTION_USER);
+      const user = await userCollection.findOne({ _id });
+      if (!user) {
+         throw new Error("User not found.");
+      }
+
+      // Insert message into the messages collection
+      const messagesCollection = (await db).collection(COLLECTION_MSG);
+      const result = await messagesCollection.insertOne({
+         userId: _id,  // Refer to user's ObjectId correctly
+         msg: msg,     // Store the message text
+         createdAt: new Date()  // Optionally add a timestamp
+      });
+
+      // Log the insert result for debugging
+      console.log("Insert result:", result);
+
+      res.status(200).json({
+         code: 200,
+         message: "Message stored successfully",
+         messageId: result.insertedId
+      });
+   } catch (error) {
+         console.error("Error in /push route:", error);
+         res.status(400).json({ code: 400, message: error.message });
+   }
+});
 
 
-router.get('/selectMessages', getID, async (req, res) => // make query************
+router.get('/selectMessages', async (req, res) => // make query************
 {
    try
    {

@@ -9,7 +9,7 @@ function Login() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        const response = await fetch('/login', {
+        const response = await fetch('http://localhost:3001/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -17,7 +17,8 @@ function Login() {
         if (response.ok && response.headers.get("content-type").includes("application/json")) {
             const data = await response.json();
             console.log(data);
-            navigate('/messages'); // Redirect to messages page after logging in
+            // navigate('/messages'); // Redirect to messages page after logging in
+            navigate('/messages', { state: { cardId: data.cardId } });
         } else {
             console.log('No JSON response received', response.status);
         }
