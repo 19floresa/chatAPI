@@ -122,7 +122,7 @@ router.get('/selectMessages', getID, async (req, res) => // make query**********
       if (!user) throw "Error: User was not found!"
 
       const coll_msg = (await db).collection(COLLECTION_MSG)
-      const result = await coll_msg.find({ id: _id }).toArray() // will need to find between a range
+      const result = await coll_msg.find({ userId: _id }).sort({createdAt: -1}).limit(10).toArray() // will need to find between a range
       
       res.status(200).json(
          {
