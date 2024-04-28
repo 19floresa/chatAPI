@@ -4,18 +4,21 @@ import Messages from './Messages';
 import Login from './Login';
 import Register from './Register';
 
-function App() {
-  return (
-    <Router>
-      <div className="App">
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/messages" element={<Messages />} />
-        </Routes>
-      </div>
-    </Router>
-  );
+class define_webpages {
+  constructor(){}
+App() {
+    return (
+      <Router>
+        <div className="App">
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/messages" element={<Messages />} />
+          </Routes>
+        </div>
+      </Router>
+    );
+}
 }
 
-export default App;
+export default define_webpages;//App;

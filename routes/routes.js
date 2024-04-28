@@ -61,12 +61,38 @@ router.post('/login', async (req, res) =>
    }
 })
 
+router.get('/retrieveAllUsers', async (req, res) =>
+{
+   try
+   {
+      const { cardId } = req.body
+      const _id = new ObjectId(cardId);
+      
+      const coll = (await db).collection(COLLECTION_USER)    
+      const user = await coll.findOne({ _id}) // maybe salt password
+      if (!user) throw "Error: users could not be verified"
 
-router.post('/push', async (req, res) => {
-   const { cardId, msg } = req.body;
+      const all_users = await coll.find().toArray()
+
+      res.status(200).json(
+         {
+            code: 200, 
+            message: "success", 
+            cardId: all_users
+         }) 
+   } 
+   catch (e)
+   {
+      res.status(400).json({code:400, message: e})
+   }
+})
+
+
+router.post('/push', getID, async (req, res) => {
+   const { cardId, msg, other_user } = req.body;
 
    // Validate input
-   if (!cardId || !msg) {
+   if (!cardId || !msg || !other_user) {
       return res.status(400).json({ code: 400, message: "Missing cardId or message in request body." });
    }
 
@@ -77,18 +103,21 @@ router.post('/push', async (req, res) => {
       }
 
       const _id = new ObjectId(cardId);
+      const _otherId = new ObjectId(other_user);
 
       // Verify user exists
-      const userCollection = (await db).collection(COLLECTION_USER);
-      const user = await userCollection.findOne({ _id });
-      if (!user) {
-         throw new Error("User not found.");
-      }
+      // const userCollection = (await db).collection(COLLECTION_USER);
+      // const user = await userCollection.findOne({ _id });
+      // const otherUser = await userCollection.findOne({ _otherId });
+      // if (!user || otherUser) {
+      //    throw new Error("User not found.");
+      // }
 
       // Insert message into the messages collection
       const messagesCollection = (await db).collection(COLLECTION_MSG);
       const result = await messagesCollection.insertOne({
          userId: _id,  // Refer to user's ObjectId correctly
+         otherId: _otherId, // person you sent msg too
          msg: msg,     // Store the message text
          createdAt: new Date()  // Optionally add a timestamp
       });
@@ -110,19 +139,65 @@ router.post('/push', async (req, res) => {
 
 router.get('/selectMessages', getID, async (req, res) => // make query************
 {
+   /* This function lets you select the LAST 10 messages taken out of the database.
+      With the variable data_index you take out (10 * data_index) messages from the db,
+      then you return the last 10 messages from the previous result.
+      */
    try
    {
-      const { cardId } = req.body
+      const { cardId, data_index, other_user  } = req.body
       if (!cardId) throw "Error in push: missing cardId!"
    
       const _id = new ObjectId(cardId); //ObjectId.createFromTime() // i think i can use this to find messages between a date
+      const _otherId =  new ObjectId(other_user);
 
-      const coll = (await db).collection(COLLECTION_USER)
-      const user = await coll.findOne({ _id })
-      if (!user) throw "Error: User was not found!"
+      // const coll = (await db).collection(COLLECTION_USER)
+      // const user = await coll.findOne({ _id })
+      // if (!user) throw "Error: User was not found!"
+
+
+      // calculate next 10 messages
+      if (data_index == undefined) throw "Error: Data index is undefined"
+      const low = 10 * data_index
+      const i = (data_index ? (data_index + 1) : 1)
+      const max =  10 * i
 
       const coll_msg = (await db).collection(COLLECTION_MSG)
-      const result = await coll_msg.find({ userId: _id }).sort({createdAt: -1}).limit(10).toArray() // will need to find between a range
+      let result = await coll_msg.find({ userId: _id, otherId: _otherId}).sort({createdAt: -1}).limit(max).toArray() // will need to find between a range
+
+      result = result.slice(low)
+      res.status(200).json(
+         {
+            code: 200, 
+            message: "success",
+            result: result
+         })
+   }
+   catch (e)
+   {
+      res.status(400).json({code:400, message: e})
+   }
+})
+
+router.get('/recentMessages', getID, async (req, res) => // make query************
+{
+   /*
+   This function will give you the top 10 messages
+   */
+   try
+   {
+      const { cardId, other_user } = req.body
+      if (!cardId) throw "Error in push: missing cardId!"
+   
+      const _id = new ObjectId(cardId); //ObjectId.createFromTime() // i think i can use this to find messages between a date
+      const _otherId = new ObjectId(other_user); 
+
+      // const coll = (await db).collection(COLLECTION_USER)
+      // const user = await coll.findOne({ _id })
+      // if (!user) throw "Error: User was not found!"
+
+      const coll_msg = (await db).collection(COLLECTION_MSG)
+      const result = await coll_msg.find({ userId: _id, otherId: _otherId }).sort({createdAt: -1}).limit(10).toArray() // will need to find between a range
       
       res.status(200).json(
          {
@@ -136,6 +211,8 @@ router.get('/selectMessages', getID, async (req, res) => // make query**********
       res.status(400).json({code:400, message: e})
    }
 })
+
+
 
 
 // pop function to remove a message
