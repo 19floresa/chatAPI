@@ -25,8 +25,12 @@ To import all the requires libraries you will need to call 'npm i' in the follow
 * User2: 'XXX_cool_user_XXX', password2: '123'
 
 # 6. Login with the users created beforehand
-* Go back to the login page
-* Enter data of user1 in the first tab
+* Go back to the login page.
+* Enter data of user1 in the first tab.
 * Repeat for user2.
 
-# 7. 
+# 7. Communicate with user2
+* In the web browser tab for user1, find user2.
+* Type a message in the bottom of the webpage and send your message to user2.
+* Repeat for user2.
+* In both tab you should see user1 and user2 message.

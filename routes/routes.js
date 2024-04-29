@@ -66,6 +66,7 @@ router.get('/retrieveAllUsers', async (req, res) =>
    try
    {
       const { cardId } = req.body
+      console.log(req)
       const _id = new ObjectId(cardId);
       
       const coll = (await db).collection(COLLECTION_USER)    
