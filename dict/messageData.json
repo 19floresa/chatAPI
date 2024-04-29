@@ -1,0 +1,62 @@
+[
+    {
+        "_id": {
+          "$oid": "662e219213d97cce75d70887"
+        },
+        "userId": {
+          "$oid": "662f1c0990c648a98b6646fc"
+        },
+        "otherId": {
+          "$oid": "662f1c0990c648a98b6646fd"
+        },
+        "msg": "I am a cool user",
+        "createdAt": {
+          "$date": "2024-04-28T10:14:42.482Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "662e219513d97cce75d70888"
+        },
+        "userId": {
+          "$oid": "662f1c0990c648a98b6646fc"
+        },
+        "otherId": {
+          "$oid": "662f1c0990c648a98b6646fd"
+        },
+        "msg": "I am batman",
+        "createdAt": {
+          "$date": "2024-04-28T10:14:42.482Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "662e219913d97cce75d70889"
+        },
+        "userId": {
+          "$oid": "662f1c0990c648a98b6646fd"
+        },
+        "otherId": {
+          "$oid": "662f1c0990c648a98b6646fc"
+        },
+        "msg": "You are not.",
+        "createdAt": {
+          "$date": "2024-04-28T10:14:42.482Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "662e219d13d97cce75d7088a"
+        },
+        "userId": {
+          "$oid": "662f1c0990c648a98b6646fd"
+        },
+        "otherId": {
+          "$oid": "662f1c0990c648a98b6646fc"
+        },
+        "msg": "A cool user.",
+        "createdAt": {
+          "$date": "2024-04-28T10:14:42.482Z"
+        }
+      }
+]
