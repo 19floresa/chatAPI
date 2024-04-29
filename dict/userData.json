@@ -1,4 +1,20 @@
-[{"username":"new_person123","password":"123"},
-{"username":"batman","password":"123"},
-{"username":"superman","password":"456"},
-{"username":"Ricky","password":"456"}]
+[
+    {
+        "username":"new_person123",
+        "password":"123"
+    },
+    {
+        "_id": {"$oid": "662f1c0990c648a98b6646fc"},
+        "username":"batman",
+        "password":"123"
+    },
+    {
+        "username":"superman",
+        "password":"456"
+    },
+    {
+        "_id": {"$oid": "662f1c0990c648a98b6646fd"},
+        "username":"Ricky",
+        "password":"456"
+    }
+]
