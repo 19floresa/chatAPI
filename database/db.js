@@ -4,7 +4,7 @@ const MONGO_URL = 'mongodb://localhost:27017'
 const MONGO_DB = 'chat-db'
 
 class database_creator {
-    constructor (){}
+
     async create_db ()
     {
         return (await mongodb.connect(MONGO_URL)).db(MONGO_DB)

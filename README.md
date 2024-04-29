@@ -1,10 +1,14 @@
 # chatAPI
 
 # 0. set up database
+* Assumption1: You have the most recent mongodb and tools installed and working.
+* Assumption2: The mongo url is as follows:```'mongodb://localhost:27017```
+* Assumption3: The mongo database is called: ```chat-db```
+* To find more information about the database set up then read the file in ```./database/db.js```
 * ```mkdir data && cd data && mkdir db && cd ..```
 
 # 1. Import Libraries
-To import all the requires libraries you will need to call 'npm i' in the following directories:
+To import all the requires libraries you will need to call ```npm i``` in the following directories:
 * ```./```
 * ```./client/```
 
