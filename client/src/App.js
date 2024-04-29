@@ -1,26 +1,24 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { SocketProvider } from './SocketContext';
 import Messages from './Messages';
-import login_webpage from './Login';
+import Login from './Login';
 import Register from './Register';
 
-const Login = (new login_webpage).Login;
-
-class define_webpages {
-  constructor(){}
-App() {
+function App() {
     return (
-      <Router>
-        <div className="App">
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/messages" element={<Messages />} />
-          </Routes>
-        </div>
-      </Router>
+        <Router>
+            <SocketProvider>
+                <div className="App">
+                    <Routes>
+                        <Route path="/" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/messages" element={<Messages />} />
+                    </Routes>
+                </div>
+            </SocketProvider>
+        </Router>
     );
 }
-}
 
-export default define_webpages;//App;
+export default App;

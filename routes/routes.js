@@ -61,69 +61,97 @@ router.post('/login', async (req, res) =>
    }
 })
 
-router.get('/retrieveAllUsers', async (req, res) =>
-{
-   try
-   {
-      const { cardId } = req.body
-      const _id = new ObjectId(cardId);
-      
-      const coll = (await db).collection(COLLECTION_USER)    
-      const user = await coll.findOne({ _id}) // maybe salt password
-      if (!user) throw "Error: users could not be verified"
 
-      const all_users = await coll.find().toArray()
-
-      res.status(200).json(
-         {
-            code: 200, 
-            message: "success", 
-            cardId: all_users
-         }) 
-   } 
-   catch (e)
-   {
-      res.status(400).json({code:400, message: e})
+router.get('/retrieveAllUsers', async (req, res) => {
+   try {
+      const coll = (await db).collection(COLLECTION_USER);
+      const all_users = await coll.find({}).toArray();
+      res.status(200).json({
+         code: 200,
+         message: "Success",
+         users: all_users
+      });
+   } catch (e) {
+      res.status(400).json({
+         code: 400,
+         message: "Failed to retrieve users: " + e.message
+      });
    }
-})
+});
 
 
-router.post('/push', getID, async (req, res) => {
+router.post('/messagesBetween', async (req, res) => {
+   const { userId, otherUserId } = req.body;
+   console.log('Fetching messages between:', userId, 'and', otherUserId);
+
+   if (!userId || !otherUserId) {
+      return res.status(400).json({ code: 400, message: "Missing userId or otherUserId in request body" });
+   }
+
+   try {
+      const messagesCollection = (await db).collection(COLLECTION_MSG);
+      const messages = await messagesCollection.find({
+         $or: [
+            { $and: [{ userId: new ObjectId(userId) }, { otherId: new ObjectId(otherUserId) }] },
+            { $and: [{ userId: new ObjectId(otherUserId) }, { otherId: new ObjectId(userId) }] }
+         ]
+      }).sort({ createdAt: -1 }).toArray();
+
+      console.log('Retrieved messages:', messages.length);
+      res.status(200).json({
+         code: 200,
+         message: "Messages retrieved successfully",
+         messages
+      });
+   } catch (error) {
+      console.error("Error in /messagesBetween route:", error);
+      res.status(500).json({ code: 500, message: error.message });
+   }
+});
+
+
+router.post('/logout', async (req, res) => {
+   try {
+      res.status(200).json({ code: 200, message: "Logged out successfully" });
+   } catch (error) {
+      console.error("Error during logout:", error);
+      res.status(500).json({ code: 500, message: "Logout failed" });
+   }
+});
+
+
+router.post('/logoutAll', async (req, res) => {
+   try {
+      res.status(200).json({ code: 200, message: "All users logged out successfully" });
+   } catch (error) {
+      console.error("Error during logout all users:", error);
+      res.status(500).json({ code: 500, message: "Logout all users failed" });
+   }
+});
+
+
+router.post('/push', async (req, res) => {
    const { cardId, msg, other_user } = req.body;
-
-   // Validate input
    if (!cardId || !msg || !other_user) {
       return res.status(400).json({ code: 400, message: "Missing cardId or message in request body." });
    }
 
    try {
-       // Validate cardId format
-      if (!ObjectId.isValid(cardId)) {
-         throw new Error("Invalid cardId format.");
+      const userCollection = (await db).collection(COLLECTION_USER);
+      const sender = await userCollection.findOne({ _id: new ObjectId(cardId) });
+      const receiver = await userCollection.findOne({ _id: new ObjectId(other_user) });
+
+      if (!sender || !receiver) {
+         throw new Error("User not found.");
       }
 
-      const _id = new ObjectId(cardId);
-      const _otherId = new ObjectId(other_user);
-
-      // Verify user exists
-      // const userCollection = (await db).collection(COLLECTION_USER);
-      // const user = await userCollection.findOne({ _id });
-      // const otherUser = await userCollection.findOne({ _otherId });
-      // if (!user || otherUser) {
-      //    throw new Error("User not found.");
-      // }
-
-      // Insert message into the messages collection
       const messagesCollection = (await db).collection(COLLECTION_MSG);
       const result = await messagesCollection.insertOne({
-         userId: _id,  // Refer to user's ObjectId correctly
-         otherId: _otherId, // person you sent msg too
-         msg: msg,     // Store the message text
-         createdAt: new Date()  // Optionally add a timestamp
+         userId: new ObjectId(cardId),
+         otherId: new ObjectId(other_user),
+         msg: msg,
+         createdAt: new Date()
       });
-
-      // Log the insert result for debugging
-      console.log("Insert result:", result);
 
       res.status(200).json({
          code: 200,
@@ -131,8 +159,8 @@ router.post('/push', getID, async (req, res) => {
          messageId: result.insertedId
       });
    } catch (error) {
-         console.error("Error in /push route:", error);
-         res.status(400).json({ code: 400, message: error.message });
+      console.error("Error in /push route:", error);
+      res.status(400).json({ code: 400, message: error.message });
    }
 });
 
@@ -179,6 +207,7 @@ router.get('/selectMessages', getID, async (req, res) => // make query**********
    }
 })
 
+
 router.get('/recentMessages', getID, async (req, res) => // make query************
 {
    /*
@@ -211,9 +240,6 @@ router.get('/recentMessages', getID, async (req, res) => // make query**********
       res.status(400).json({code:400, message: e})
    }
 })
-
-
-
 
 // pop function to remove a message
 

@@ -17,7 +17,7 @@ function Register() {
         if (response.ok && response.headers.get("content-type").includes("application/json")) {
             const data = await response.json();
             console.log(data);
-            navigate('/login'); // Redirect to login after registration
+            navigate('/'); // Redirect to login after registration
         } else {
             console.error('Failed to register:', response.status);
         }

@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { List, ListItem, ListItemText, Divider, Box, Grid, Paper, Card, TextField,
-    InputAdornment, Typography, Avatar, ListItemAvatar, ListItemButton } from '@mui/material';
+import { Box, Grid, Paper, Card, TextField, InputAdornment, Typography, Avatar, List, ListItem, ListItemAvatar, ListItemText, ListItemButton, Divider } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import SendIcon from '@mui/icons-material/Send';
+import io from 'socket.io-client';
 import axios from 'axios';
-import { useLocation } from 'react-router-dom';
+import Button from '@mui/material/Button';
+import { useNavigate } from 'react-router-dom';
 
 function Messages() {
-    const users = ["User1", "User2", "User3", "User4", "User5"];
-    const [selectedUser, setSelectedUser] = useState(users[0]);
+    const [users, setUsers] = useState([]);
+    const [selectedUser, setSelectedUser] = useState(null);
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-    const location = useLocation();
-    const cardId = location.state?.cardId; 
+    const navigate = useNavigate();
+    const socket = io('http://localhost:3001', {
+        query: { sessionId: sessionStorage.getItem('sessionId') }
+    });
 
     const userSideBg = '#9E9E9E';
     const searchBoxBg = '#EEEEEE';
@@ -20,43 +23,128 @@ function Messages() {
     const userTextColor = '#FFFFFF';
     const messageAreaBg = '#E0E0E0';
     const barBg = '#F5F5F5';
-    // const messageTextColor = '#212121';
     const avatarBgColor = '#EEEEEE';
     const avatarTextColor = '#424242';
-    const messageCardBg = '#212121'; // Background color for the message cards
-    const messageTextColor = '#FFFFFF'; // Text color for the messages in the cards
-
+    const messageCardBg = '#212121';
+    const messageTextColor = '#FFFFFF';
 
     useEffect(() => {
-        const fetchMessages = async () => {
+        const loggedInUserId = sessionStorage.getItem('loggedInUserId');
+        const loggedInUsername = sessionStorage.getItem('loggedInUsername');
+
+        if (!loggedInUserId || !loggedInUsername) {
+            navigate('/login');
+        }
+
+        socket.on('messageReceived', (message) => {
+            if (message.senderId === selectedUser?._id || message.receiverId === selectedUser?._id) {
+                setMessages(prevMessages => [...prevMessages, message]);
+            }
+        });
+
+        return () => {
+            socket.off('messageReceived');
+        };
+    }, [selectedUser, navigate]);
+
+    useEffect(() => {
+        async function fetchUsers() {
             try {
-                const response = await axios.get(`http://localhost:3001/selectMessages`, {
-                    params: { cardId: cardId }
-                });
-                setMessages(response.data.result);
+                const response = await axios.get('http://localhost:3001/retrieveAllUsers');
+                if (response.data && response.data.users) {
+                    setUsers(response.data.users);
+                    if (!selectedUser && response.data.users.length > 0) {
+                        setSelectedUser(response.data.users[0]);
+                    }
+                }
             } catch (error) {
-                console.error('Failed to fetch messages:', error);
+                console.error('Failed to fetch users:', error);
+            }
+        }
+        fetchUsers();
+    }, []);
+
+    useEffect(() => {
+        let intervalId;
+    
+        const fetchMessages = async () => {
+            if (selectedUser) {
+                try {
+                    const response = await axios.post('http://localhost:3001/messagesBetween', {
+                        userId: sessionStorage.getItem('loggedInUserId'),
+                        otherUserId: selectedUser._id
+                    });
+                    if (response.data && response.data.messages) {
+                        setMessages(response.data.messages.map(msg => ({
+                            ...msg,
+                            sender: msg.userId,
+                            content: msg.msg
+                        })));
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch messages:', error);
+                }
             }
         };
-
-        if (cardId) {
-            fetchMessages();
-        }
-    }, [cardId]);
+    
+        fetchMessages();
+    
+        intervalId = setInterval(fetchMessages, 3000);
+    
+        return () => {
+            clearInterval(intervalId);
+        };
+    }, [selectedUser]);
+    
 
     const handleSendMessage = async () => {
+        if (!selectedUser || !newMessage) return;
+
+        const messageData = {
+            cardId: sessionStorage.getItem('loggedInUserId'),
+            msg: newMessage,
+            other_user: selectedUser._id
+        };
+
         try {
-            await axios.post('http://localhost:3001/push', {
-                cardId: cardId,
-                msg: newMessage
-            });
-            setMessages(prevMessages => [...prevMessages, { msg: newMessage }]);
+            const response = await axios.post('http://localhost:3001/push', messageData);
+            const newMsg = {
+                senderId: sessionStorage.getItem('loggedInUserId'),
+                senderUsername: sessionStorage.getItem('loggedInUsername'),
+                content: newMessage,
+                receiverId: selectedUser._id,
+                receiverUsername: selectedUser.username
+            };
+
+            setMessages(prevMessages => [...prevMessages, newMsg]);
             setNewMessage('');
-        } catch (error) {
+            socket.emit('sendMessage', newMsg);
+        } catch ( error) {
             console.error('Failed to send message:', error);
         }
     };
-    
+
+    const handleLogout = async () => {
+        try {
+            await axios.post('http://localhost:3001/logout', { userId: sessionStorage.getItem('loggedInUserId') });
+            socket.disconnect();
+            sessionStorage.clear();
+            navigate('/');
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
+    };
+
+    const handleLogoutAll = async () => {
+        try {
+            await axios.post('http://localhost:3001/logoutAll');
+            socket.emit('logoutAll');
+            navigate('/');
+        } catch (error) {
+            console.error('Logout All failed:', error);
+        }
+    };
+
     return (
         <Box sx={{ flexGrow: 1, height: '100vh' }}>
             <Grid container spacing={0} sx={{ height: '100%' }}>
@@ -68,11 +156,7 @@ function Messages() {
                                 variant="outlined"
                                 placeholder="Search Users"
                                 InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <SearchIcon />
-                                        </InputAdornment>
-                                    ),
+                                    startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
                                     style: { backgroundColor: searchBoxBg },
                                 }}
                                 sx={{ height: 40, marginBottom: '16px' }}
@@ -81,58 +165,88 @@ function Messages() {
                         <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
                             <List component="nav" aria-label="mailbox folders" sx={{ padding: 0, width: '100%' }}>
                                 {users.map((user, index) => (
-                                    <React.Fragment key={user}>
-                                        <ListItemButton
-                                            selected={user === selectedUser}
-                                            onClick={() => setSelectedUser(user)}
-                                            sx={{
-                                                bgcolor: user === selectedUser ? selectedUserHighlight : 'transparent',
-                                                '&.Mui-selected': {
+                                    <ListItemButton
+                                        key={user._id}
+                                        selected={selectedUser && user._id === selectedUser._id}
+                                        onClick={() => setSelectedUser(user)}
+                                        sx={{
+                                            bgcolor: (selectedUser && user._id === selectedUser._id) ? selectedUserHighlight : 'transparent',
+                                            '&.Mui-selected': {
+                                                bgcolor: selectedUserHighlight,
+                                                color: 'white',
+                                                '&:hover': {
                                                     bgcolor: selectedUserHighlight,
-                                                    color: 'white',
-                                                    '&:hover': {
-                                                        bgcolor: selectedUserHighlight,
-                                                    },
                                                 },
-                                                height: '72px',
-                                            }}
-                                        >
-                                            <ListItemAvatar>
-                                                <Avatar sx={{ bgcolor: avatarBgColor, color: avatarTextColor }}>
-                                                    {user[0]}
-                                                </Avatar>
-                                            </ListItemAvatar>
-                                            <ListItemText 
-                                                primary={user} 
-                                                primaryTypographyProps={{ style: { color: userTextColor } }}
-                                            />
-                                        </ListItemButton>
-                                        {index < users.length - 1 && <Divider />}
-                                    </React.Fragment>
+                                            },
+                                            height: '72px',
+                                        }}
+                                    >
+                                        <ListItemAvatar>
+                                            <Avatar sx={{ bgcolor: avatarBgColor, color: avatarTextColor }}>
+                                                {user.username[0]}
+                                            </Avatar>
+                                        </ListItemAvatar>
+                                        <ListItemText 
+                                            primary={user.username}
+                                            primaryTypographyProps={{ style: { color: userTextColor } }}
+                                        />
+                                    </ListItemButton>
                                 ))}
                             </List>
+                        </Box>
+                        <Box sx={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
+                            <Button 
+                                variant="contained" 
+                                color="primary" 
+                                onClick={() => handleLogout()}
+                                sx={{ marginRight: 2 }}
+                            >
+                                Logout
+                            </Button>
+                            <Button 
+                                variant="contained" 
+                                color="secondary" 
+                                onClick={() => handleLogoutAll()}
+                            >
+                                Logout All Users
+                            </Button>
                         </Box>
                     </Card>
                 </Grid>
                 <Grid item xs={12} md={9}>
                     <Card sx={{ height: '100%' }}>
                         <Paper elevation={3} style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: messageAreaBg }}>
-                            <Box sx={{ bgcolor: barBg, display: 'flex', alignItems: 'center', padding: '16px', height: '55.9px' }}>
-                                <Typography variant="h5">{selectedUser}</Typography>
+                            <Box sx={{ 
+                                bgcolor: barBg, 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                padding: '16px', 
+                                height: '55.9px', 
+                                justifyContent: 'space-between'
+                            }}>
+                                <Typography variant="h5">
+                                    {selectedUser ? selectedUser.username : "Select a user"}
+                                </Typography>
+                                <Typography variant="h6" style={{ textAlign: 'right' }}>
+                                    Logged in as: {sessionStorage.getItem('loggedInUsername')}
+                                </Typography>
                             </Box>
                             <div style={{ flexGrow: 1, overflow: 'auto', display: 'flex', flexDirection: 'column-reverse' }}>
                                 {messages.map((msg, index) => (
                                     <Box key={index} sx={{
                                         display: 'inline-block',
                                         maxWidth: 'fit-content',
-                                        marginLeft: 'auto',
-                                        marginRight: '10px',
+                                        marginLeft: msg.sender === sessionStorage.getItem('loggedInUserId') ? 'auto' : '10px',
+                                        marginRight: msg.sender === sessionStorage.getItem('loggedInUserId') ? '10px' : 'auto',
                                         marginBottom: '10px',
                                         bgcolor: messageCardBg,
                                         padding: '10px',
-                                        borderRadius: '4px'
+                                        borderRadius: '4px',
+                                        textAlign: msg.sender === sessionStorage.getItem('loggedInUserId') ? 'right' : 'left'
                                     }}>
-                                        <Typography variant="body1" style={{ color: messageTextColor, fontSize: '1.8rem', textAlign: 'right' }}>{msg.msg}</Typography>
+                                        <Typography variant="body1" style={{ color: messageTextColor, fontSize: '1.8rem' }}>
+                                            {msg.content}
+                                        </Typography>
                                     </Box>
                                 ))}
                             </div>
@@ -158,6 +272,7 @@ function Messages() {
             </Grid>
         </Box>
     );
+    
 }
 
 export default Messages;
