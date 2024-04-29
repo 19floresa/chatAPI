@@ -16,7 +16,7 @@ To import all the requires libraries you will need to call ```npm i``` in the fo
 * ```mongod -dbpath data/db --port 27017```
 
 # 2.5. Import data to db
-* ```cd dict``
+* ```cd dict```
 * ```mongoimport --db chat-db --collection users_info --file userData.json --jsonArray```
 * ```mongoimport --db chat-db --collection users_messages --file messageData.json --jsonArray```
 * ```cd ..```
