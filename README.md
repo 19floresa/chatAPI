@@ -1,5 +1,10 @@
 # chatAPI
 
+# 0. set up database
+```
+mkdir data && cd data && mkdir db && cd ..
+```
+
 # 1. Import Libraries
 To import all the requires libraries you will need to call 'npm i' in the following directories:
 * './'
@@ -33,4 +38,4 @@ To import all the requires libraries you will need to call 'npm i' in the follow
 * In the web browser tab for user1, find user2.
 * Type a message in the bottom of the webpage and send your message to user2.
 * Repeat for user2.
-* In both tab you should see user1 and user2 message.
+* In both tabs, you should see user1 and user2 message.
